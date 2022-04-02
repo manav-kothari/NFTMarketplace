@@ -1,85 +1,151 @@
-import React from 'react'
 import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react'
+import { GetServerSideProps } from 'next'
+import Head from 'next/head'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { IoHomeOutline } from 'react-icons/io5'
+import { sanityClient, urlFor } from '../../sanity'
+import { Collection } from '../../typings'
 
-function NFTDropPage() {
-  //Auth
+interface NFTPageInterface {
+  collection: Collection
+}
+
+const NFTDropPage = ({ collection }: NFTPageInterface) => {
   const connectWithMetamask = useMetamask()
   const address = useAddress()
   const disconnect = useDisconnect()
 
   return (
     <div className="flex h-screen flex-col lg:grid lg:grid-cols-10">
+      <Head>
+        <title>TT NFT Drop</title>
+      </Head>
+
       {/* Left */}
-      <div className="bg-gradient-to-br from-cyan-800 to-rose-500 lg:col-span-4">
-        <div className="flex flex-col items-center justify-center py-2 lg:min-h-screen">
-          <div className="rounded-xl bg-gradient-to-br from-yellow-400 to-purple-600 p-2">
-            <img
-              className="object-over w-44 rounded-xl lg:h-96 lg:w-80"
-              src="https://pbs.twimg.com/profile_images/1281935909898776577/UYUz6_6E_400x400.jpg"
-              alt="home_image"
+      <div className="flex flex-col items-center justify-center bg-gradient-to-br from-cyan-700 to-rose-500 py-6 lg:col-span-4 lg:h-screen">
+        <div className="rounded-lg bg-gradient-to-br from-yellow-400 to-cyan-700 p-2">
+          <div className="relative h-40 w-40 lg:h-80 lg:w-64 xl:h-96 xl:w-72">
+            <Image
+              src={urlFor(collection.previewImage).url()}
+              layout="fill"
+              objectFit="cover"
+              priority
+              className="rounded-lg"
             />
           </div>
-          <div className="space-y-2 p-5 text-center">
-            <h1 className="text-4xl font-bold text-white">
-              Anshuman Sharma NFT
-            </h1>
-            <h2 className="text-xl text-gray-300">
-              A collection of 7 FREE NFTs
-            </h2>
-          </div>
+        </div>
+        <div className="mt-4 space-y-1">
+          <h1 className="text-center text-2xl font-bold capitalize text-white lg:text-3xl">
+            {collection.nftCollectionName}
+          </h1>
+          <h2 className="text-center text-sm text-gray-300 lg:text-base">
+            {collection.description}
+          </h2>
         </div>
       </div>
 
       {/* Right */}
-      <div className="flex flex-1 flex-col p-12 lg:col-span-6">
+      <div className="flex h-full flex-col px-6 py-4 lg:col-span-6">
         {/* Header */}
-        <header className="flex items-center justify-between">
-          <h1 className="w-52 cursor-pointer text-xl font-extralight sm:w-80">
-            The{' '}
-            <span className="font-extrabold underline decoration-pink-600/50">
-              WAGMI
-            </span>{' '}
-            NFT Market Place
-          </h1>
-
-          <button
-            onClick={() => (address ? disconnect() : connectWithMetamask())}
-            className="rounded-full bg-rose-400 px-5 py-2 
-                text-xs font-bold text-white lg:px-5 lg:py-3"
-          >
-            {address ? 'Sing Out' : 'Sing In'}
-          </button>
+        <header>
+          <div className="flex items-center justify-between">
+            <h1 className="text-sm text-slate-800 lg:text-base">
+              The <b>TT</b> NFT Marketplace
+            </h1>
+            <div className="flex space-x-2">
+              <Link href="/">
+                <button className="rounded-full bg-gray-200 py-1 px-4 text-sm text-gray-600 transition-all ease-in-out hover:bg-gray-300 active:scale-95 lg:py-2">
+                  <IoHomeOutline size={24} />
+                </button>
+              </Link>
+              <button
+                onClick={() => (address ? disconnect() : connectWithMetamask())}
+                className="rounded-full bg-rose-400 py-1 px-4 text-sm text-white transition-all ease-in-out hover:bg-rose-600 active:scale-95 lg:py-2"
+              >
+                {address ? 'Sign Out' : 'Sign In'}
+              </button>
+            </div>
+          </div>
+          <hr className="my-2 border-b-2 border-b-gray-300" />
+          {address && (
+            <p className="text-center text-sm text-red-500">
+              You're logged in with wallet {address.substring(0, 5)}...
+              {address.substring(address.length - 5)}
+            </p>
+          )}
         </header>
 
-        <hr className="my-2 border" />
-        {address && (
-          <p className="text-center text-sm text-rose-400">
-            You're logged in with wallet {address.substring(0, 5)}
-            ...
-            {address.substring(address.length - 5)}
-          </p>
-        )}
-
         {/* Content */}
-        <div className="mt-10 flex flex-1 flex-col items-center space-y-6 text-center lg:justify-center lg:space-y-0 ">
-          <img
-            className="w-80 object-cover pb-10 lg:h-40"
-            src="https://links.papareact.com/bdy"
-            alt=""
-          />
-          <h1 className="text-3xl font-bold lg:text-5xl lg:font-extrabold">
-            The Anshuman Sharma WAGMI GANG | NFT Drop
+        <main className="flex flex-1 flex-col items-center lg:justify-center">
+          <div className="relative mt-12 h-72 w-72 rounded-lg border-4 border-rose-400 shadow-lg shadow-rose-300 lg:h-36 lg:w-80">
+            <Image
+              src={urlFor(collection.mainImage).url()}
+              layout="fill"
+              objectFit="cover"
+              priority
+              className="rounded-lg"
+            />
+          </div>
+          <h1 className="my-4 text-center text-xl font-bold text-slate-800 lg:text-3xl">
+            {collection.title}
           </h1>
+          <p className="text-sm text-green-500">13 / 21 NFT's claimed</p>
+        </main>
 
-          <p className="pt-2 text-xl text-green-500 ">15 / 21 NFT's claimed</p>
-        </div>
-        {/* Mint Button */}
-        <button className="mt-10 h-16 w-full rounded-full bg-red-600 font-bold text-white">
-          Mint NFT (0.01 ETH)
-        </button>
+        {/* Button */}
+        <footer className="flex">
+          <button className="mt-12 w-full rounded-full bg-rose-500 py-4 font-bold text-white transition-all ease-in-out hover:bg-rose-700 active:scale-95">
+            Mint NFT (0.01 ETH)
+          </button>
+        </footer>
       </div>
     </div>
   )
 }
 
 export default NFTDropPage
+
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  const query = `*[_type == "collection" && slug.current == $id][0]{
+    _id,
+    title,
+    address,
+    description,
+    nftCollectionName,
+    mainImage {
+      asset,
+    },
+    previewImage {
+      asset,
+    },
+    slug {
+      current,
+    },
+    creator-> {
+      _id,
+      name,
+      address,
+      slug {
+        current
+      },
+    },
+  }`
+
+  const collection = await sanityClient.fetch(query, {
+    id: params?.id,
+  })
+
+  if (!collection) {
+    return {
+      notFound: true,
+    }
+  }
+
+  return {
+    props: {
+      collection,
+    },
+  }
+}
