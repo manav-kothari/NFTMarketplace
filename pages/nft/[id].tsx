@@ -1,105 +1,214 @@
-import { useAddress, useDisconnect, useMetamask } from '@thirdweb-dev/react'
+import React, { useEffect, useState } from 'react'
+import {
+  useAddress,
+  useDisconnect,
+  useMetamask,
+  useNFTDrop,
+} from '@thirdweb-dev/react'
 import { GetServerSideProps } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
-import { IoHomeOutline } from 'react-icons/io5'
 import { sanityClient, urlFor } from '../../sanity'
 import { Collection } from '../../typings'
+import Link from 'next/link'
+import { BigNumber } from 'ethers'
+import toast, { Toaster } from 'react-hot-toast'
 
-interface NFTPageInterface {
+interface Props {
   collection: Collection
 }
 
-const NFTDropPage = ({ collection }: NFTPageInterface) => {
+function NFTDropPage({ collection }: Props) {
+  const [claimedSupply, setClaimedSupply] = useState<number>(0)
+  const [totalSupply, setTotalSupply] = useState<BigNumber>()
+  const [priceInEth, setPriceInEth] = useState<string>()
+  const [loading, setLoading] = useState<boolean>(true)
+
+  const nftDrop = useNFTDrop(collection.address)
+
+  // Auth
   const connectWithMetamask = useMetamask()
   const address = useAddress()
   const disconnect = useDisconnect()
 
+  useEffect(() => {
+    if (!nftDrop) return
+
+    const fetchPrice = async () => {
+      const claimConditions = await nftDrop.claimConditions.getAll()
+      setPriceInEth(claimConditions?.[0].currencyMetadata.displayValue)
+    }
+
+    fetchPrice()
+  }, [nftDrop])
+
+  useEffect(() => {
+    if (!nftDrop) return
+
+    const fetchNFTDropData = async () => {
+      setLoading(true)
+      const claimed = await nftDrop.getAllClaimed()
+      const total = await nftDrop.totalSupply()
+
+      setClaimedSupply(claimed.length)
+      setTotalSupply(total)
+      setLoading(false)
+    }
+
+    fetchNFTDropData()
+  }, [nftDrop])
+
+  const mintNft = () => {
+    if (!nftDrop || !address) return
+
+    const quantity = 1 //how many unique NFTs you want to mint
+
+    setLoading(true)
+
+    const notification = toast.loading('Minting...', {
+      style: {
+        background: 'white',
+        color: 'green',
+        fontWeight: 'bolder',
+        fontSize: '17px',
+        padding: '20px',
+      },
+    })
+
+    nftDrop
+      .claimTo(address, quantity)
+      .then(async (tx) => {
+        const receipt = tx[0].receipt
+        const claimedTokenId = tx[0].id
+        const claimedNFT = await tx[0].data()
+
+        toast('YAY, You successfully minted your NFT!', {
+          duration: 8000,
+          style: {
+            background: 'white',
+            color: 'green',
+            fontWeight: 'bolder',
+            fontSize: '17px',
+            padding: '20px',
+          },
+        })
+
+        console.log(receipt)
+        console.log(claimedTokenId)
+        console.log(claimedNFT)
+      })
+      .catch((err) => {
+        console.log(err)
+        toast('Whoops... something went wrong', {
+          style: {
+            background: 'red',
+            color: 'white',
+            fontWeight: 'bolder',
+            fontSize: '17px',
+            padding: '20px',
+          },
+        })
+      })
+      .finally(() => {
+        setLoading(false)
+        toast.dismiss(notification)
+      })
+  }
+
   return (
     <div className="flex h-screen flex-col lg:grid lg:grid-cols-10">
-      <Head>
-        <title>TT NFT Drop</title>
-      </Head>
+      <Toaster position="bottom-center" />
 
       {/* Left */}
-      <div className="flex flex-col items-center justify-center bg-gradient-to-br from-cyan-700 to-rose-500 py-6 lg:col-span-4 lg:h-screen">
-        <div className="rounded-lg bg-gradient-to-br from-yellow-400 to-cyan-700 p-2">
-          <div className="relative h-40 w-40 lg:h-80 lg:w-64 xl:h-96 xl:w-72">
-            <Image
+      <div className="bg-gradient-to-br from-cyan-800 to-rose-500 lg:col-span-4">
+        <div className="flex flex-col items-center justify-center py-2 lg:min-h-screen">
+          <div className="rounded-xl bg-gradient-to-br from-yellow-400 to-purple-600 p-2 ">
+            <img
+              className="w-44 rounded-xl object-cover lg:h-96 lg:w-72"
               src={urlFor(collection.previewImage).url()}
-              layout="fill"
-              objectFit="cover"
-              priority
-              className="rounded-lg"
             />
           </div>
-        </div>
-        <div className="mt-4 space-y-1">
-          <h1 className="text-center text-2xl font-bold capitalize text-white lg:text-3xl">
-            {collection.nftCollectionName}
-          </h1>
-          <h2 className="text-center text-sm text-gray-300 lg:text-base">
-            {collection.description}
-          </h2>
+          <div className="space-y-2 p-5 text-center">
+            <h1 className="text-4xl font-bold text-white">
+              {collection.nftCollectionName}
+            </h1>
+            <h2 className="text-xl text-gray-300">{collection.description}</h2>
+          </div>
         </div>
       </div>
 
       {/* Right */}
-      <div className="flex h-full flex-col px-6 py-4 lg:col-span-6">
-        {/* Header */}
-        <header>
-          <div className="flex items-center justify-between">
-            <h1 className="text-sm text-slate-800 lg:text-base">
-              The <b>TT</b> NFT Marketplace
+      <div className="flex flex-1 flex-col p-12 lg:col-span-6">
+        <header className="flex items-center justify-between ">
+          <Link href={'/'}>
+            <h1 className="w-52 cursor-pointer text-xl font-extralight sm:w-80">
+              The{' '}
+              <span className="font-extrabold underline decoration-pink-600/50">
+                PAPAFAM
+              </span>{' '}
+              NFT Market Place
             </h1>
-            <div className="flex space-x-2">
-              <Link href="/">
-                <button className="rounded-full bg-gray-200 py-1 px-4 text-sm text-gray-600 transition-all ease-in-out hover:bg-gray-300 active:scale-95 lg:py-2">
-                  <IoHomeOutline size={24} />
-                </button>
-              </Link>
-              <button
-                onClick={() => (address ? disconnect() : connectWithMetamask())}
-                className="rounded-full bg-rose-400 py-1 px-4 text-sm text-white transition-all ease-in-out hover:bg-rose-600 active:scale-95 lg:py-2"
-              >
-                {address ? 'Sign Out' : 'Sign In'}
-              </button>
-            </div>
-          </div>
-          <hr className="my-2 border-b-2 border-b-gray-300" />
-          {address && (
-            <p className="text-center text-sm text-red-500">
-              You're logged in with wallet {address.substring(0, 5)}...
-              {address.substring(address.length - 5)}
-            </p>
-          )}
+          </Link>
+          <button
+            onClick={() => (address ? disconnect() : connectWithMetamask())}
+            className="rounded-full bg-rose-400 px-4 py-2 text-xs font-bold text-white lg:px-5 lg:py-3 lg:text-base"
+          >
+            {address ? 'Sign Out' : 'Sign In'}
+          </button>
         </header>
 
-        {/* Content */}
-        <main className="flex flex-1 flex-col items-center lg:justify-center">
-          <div className="relative mt-12 h-72 w-72 rounded-lg border-4 border-rose-400 shadow-lg shadow-rose-300 lg:h-36 lg:w-80">
-            <Image
-              src={urlFor(collection.mainImage).url()}
-              layout="fill"
-              objectFit="cover"
-              priority
-              className="rounded-lg"
-            />
-          </div>
-          <h1 className="my-4 text-center text-xl font-bold text-slate-800 lg:text-3xl">
+        <hr className="my-2 border" />
+        {address && (
+          <p className="text-center text-sm text-rose-400">
+            You're logged in with wallet {address.substring(0, 5)}...
+            {address.substring(address.length - 5)}
+          </p>
+        )}
+
+        <div className="mt-10 flex flex-1 flex-col items-center space-y-6 text-center lg:justify-center lg:space-y-0">
+          <img
+            className="w-80 rounded-xl object-cover pb-10"
+            src={urlFor(collection.mainImage).url()}
+            alt=""
+          />
+
+          <h1 className="text-3xl font-bold lg:text-5xl lg:font-extrabold">
             {collection.title}
           </h1>
-          <p className="text-sm text-green-500">13 / 21 NFT's claimed</p>
-        </main>
 
-        {/* Button */}
-        <footer className="flex">
-          <button className="mt-12 w-full rounded-full bg-rose-500 py-4 font-bold text-white transition-all ease-in-out hover:bg-rose-700 active:scale-95">
-            Mint NFT (0.01 ETH)
-          </button>
-        </footer>
+          {loading ? (
+            <p className="animate-pulse pt-2 text-xl text-green-500">
+              Loading Supply Count...
+            </p>
+          ) : (
+            <p className="pt-2 text-xl text-green-500">
+              {claimedSupply} / {totalSupply?.toString()} NFT's Claimed
+            </p>
+          )}
+
+          {loading && (
+            <img
+              className="h-80 w-80 object-contain sm:h-[15rem] sm:w-[15rem]"
+              src="https://cdn.hackernoon.com/images/0*4Gzjgh9Y7Gu8KEtZ.gif"
+              alt=""
+            />
+          )}
+        </div>
+        <button
+          onClick={mintNft}
+          disabled={
+            loading || claimedSupply === totalSupply?.toNumber() || !address
+          }
+          className="mt-10 h-16 w-full rounded-full bg-red-600 font-bold text-white disabled:bg-gray-400"
+        >
+          {loading ? (
+            <>Loading</>
+          ) : claimedSupply === totalSupply?.toNumber() ? (
+            <>SOLD OUT</>
+          ) : !address ? (
+            <>Sign in to Mint</>
+          ) : (
+            <span className="font-bold"> Mint NFT ({priceInEth} ETH)</span>
+          )}
+        </button>
       </div>
     </div>
   )
@@ -111,26 +220,26 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   const query = `*[_type == "collection" && slug.current == $id][0]{
     _id,
     title,
-    address,
     description,
     nftCollectionName,
+    address,
     mainImage {
-      asset,
-    },
-    previewImage {
-      asset,
-    },
+    asset
+  },
+  previewImage {
+    asset
+  },
+  slug {
+    current
+  },
+  creator-> {
+    _id,
+    name,
+    address,
     slug {
-      current,
-    },
-    creator-> {
-      _id,
-      name,
-      address,
-      slug {
-        current
-      },
-    },
+    current
+  },
+  },
   }`
 
   const collection = await sanityClient.fetch(query, {
@@ -142,7 +251,6 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       notFound: true,
     }
   }
-
   return {
     props: {
       collection,
