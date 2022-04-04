@@ -19,7 +19,7 @@ interface Props {
 function NFTDropPage({ collection }: Props) {
   const [claimedSupply, setClaimedSupply] = useState<number>(0)
   const [totalSupply, setTotalSupply] = useState<BigNumber>()
-  const [priceInEth, setPriceInEth] = useState<string>()
+  const [PriceinMATIC, setPriceinMATIC] = useState<string>()
   const [loading, setLoading] = useState<boolean>(true)
 
   const nftDrop = useNFTDrop(collection.address)
@@ -34,7 +34,7 @@ function NFTDropPage({ collection }: Props) {
 
     const fetchPrice = async () => {
       const claimConditions = await nftDrop.claimConditions.getAll()
-      setPriceInEth(claimConditions?.[0].currencyMetadata.displayValue)
+      setPriceinMATIC(claimConditions?.[0].currencyMetadata.displayValue)
     }
 
     fetchPrice()
@@ -206,7 +206,7 @@ function NFTDropPage({ collection }: Props) {
           ) : !address ? (
             <>Sign in to Mint</>
           ) : (
-            <span className="font-bold"> Mint NFT ({priceInEth} ETH)</span>
+            <span className="font-bold"> Mint NFT ({PriceinMATIC} MATIC)</span>
           )}
         </button>
       </div>
