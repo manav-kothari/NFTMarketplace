@@ -142,7 +142,7 @@ function NFTDropPage({ collection }: Props) {
             <h1 className="w-52 cursor-pointer text-xl font-extralight sm:w-80">
               The{' '}
               <span className="font-extrabold underline decoration-pink-600/50">
-                PAPAFAM
+                WAGMI
               </span>{' '}
               NFT Market Place
             </h1>
